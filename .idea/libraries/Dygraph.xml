@@ -1,0 +1,9 @@
+<component name="libraryTable">
+  <library name="Dygraph" type="javaScript">
+    <CLASSES />
+    <DOCUMENTATION>
+      <root url="https://github.com/danvk/dygraphs.git ./generate-combined.sh" />
+    </DOCUMENTATION>
+    <SOURCES />
+  </library>
+</component>

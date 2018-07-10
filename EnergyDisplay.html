@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Derwent Data</title>
+
+<link rel="shortcut icon" href="favicon.ico" >
+<link rel="stylesheet" type="text/css" href="css/nv.d3_adjusted.css">
+<link rel="stylesheet" type="text/css" href="css/energydisplay.css">
+
+<script src="js/d3.v3.js"></script>
+<script src="js/jquery-1.11.1.min.js"></script>
+<script src="js/nv.d3.js"></script>
+
+<body>
+<div class="BoxIt">
+
+    <div class="div-left">
+        <div class="div-dropdown" style="height:25px;">
+            <form>
+                <select id="selectVariableLeft">
+                    <option>Select building 1...</option>
+                </select>
+            </form>
+        </div>
+        <div class="div-1a" id="left_multiBar" style="width:100%; height:300px;"><svg></svg></div>
+        <div class="div-1a" id="left_donutChart" style="width:100%; height:300px;"><svg></svg></div>
+        <div class="div-dropdown" style="width:100%; height:25px;">
+            <form>
+                <select id="selectVariablePredicted">
+                    <option>weekday</option>
+                    <option>weekend day</option>
+                </select>
+                Y-max: <input id="maxY" placeholder="Define max y-value">
+            </form>
+        </div>
+        <div class="div-1a" id="left_stackedArea" style="width:100%; height:300px;"><svg></svg></div>
+        <div class="div-1a" id="left_lineChart" style="width:100%; height:300px;"><svg></svg></div>
+    </div>
+
+
+    <div class="div-right">
+        <div class="div-dropdown" style="height:25px;">
+            <form>
+                <select id="selectVariableRight">
+                    <option>Select building 2...</option>
+                </select>
+            </form>
+        </div>
+        <div class="div-1a" id="right_multiBar" style="width:100%; height:300px;"><svg></svg></div>
+        <div class="div-1a" id="right_donutChart" style="width:100%; height:300px;"><svg></svg></div>
+        <div class="div-dropdown" style="width:100%; height:25px;">
+            <form>
+                <select id="selectVariableActual">
+                    <option>weekday</option>
+                    <option>weekend</option>
+                </select>
+            </form></div>
+        <div class="div-1a" id="right_stackedArea" style="width:100%; height:300px;"><svg></svg></div>
+        <div class="div-1a" id="right_lineChart" style="width:100%; height:300px;"><svg></svg></div>
+
+    </div>
+
+</div>
+
+
+<script type="text/javascript">
+
+/* LEFT SIDE */
+$(document).ready(function() {
+    var options = ['1 Chitty ST', '4 Pentonvile Rd', '5-8 Hardwick elec_gas', '6-7 St Cross St elec_elec2_gas', '7-8-9 Rathbone Pl elec', '9 Rathbone Pl', '10 Pentonvile', '10 Rathbone elec_gas', '17 Gresse St elec_gas', '19-23 Fitzroy', '25 savile elec_gas', '43 Whitfield elec_gas', '45-51 elec', '63-65 NWR elec1_elec2_elec3_elec4_elec5', '76 Charlotte elec', '88 Rose elec1_elec2_elec3_gas', '100 George St elec_gas', '120 TCR elec', '137 Goldsmith Hse', '151 rose elec1_elec2_elec3', '161 rose elec1_elec2_gas', 'Angel elec1_elec2_gas', 'Buckley elec1_elec2_gas', 'Castle Hse elec', 'Davidson elec_gas', 'Gordon elec1_elec2', 'Greencoat elec1_elec2_elec3_gas', 'Holden elec1_elec2_gas', 'Johnson elec1_elec2_elec3_gas', 'Landgales elec1_gas','Middlesex Hse elec1_elec2_gas', 'Network elec1_gas', 'Oliver\'s Yard elec1_elec2_gas', 'Portobello elec1_elec2_gas', 'Qube elec1_elec2_elec3_elec4_gas', 'Stephen st elec1_elec2_elec3_elec4_elec5', 'Suncourt elec', 'Tower Elec'];
+    //var options = [actual, prediction0, prediction1, prediction2, prediction3, prediction4, prediction5, prediction6, prediction7, prediction8, prediction9, prediction10, prediction11, prediction12, prediction13, prediction14, prediction15, prediction16, prediction17, prediction18, prediction19, prediction20, prediction21, prediction22, prediction23, prediction24];
+
+    var select = document.getElementById("selectVariableLeft");
+    for (var i = 0; i < options.length; i++) {
+        var opt = options[i];
+        var el = document.createElement("option");
+        el.textContent = opt;
+        el.value = opt;
+        select.appendChild(el);
+    }
+    $("#selectVariableLeft").change(function () {
+        var LeftInput = (document.getElementById("selectVariableLeft").value);
+
+        //MultiBar month chart (PREDICTED)
+
+            d3.csv("data/" + LeftInput + "_month.csv", function(err, data) {
+                if (err) return console.warn(err);
+
+                var exampleData = Object.keys(data[0]).filter(function(k){return k!='date'})
+                        .map(function(k) {
+                            return {'key':k, 'values':data.map(function(d) {
+                                return {
+                                    //let's make this a real date
+                                    'x':d3.time.format('%Y-%m-%d').parse(d.date),
+                                    'y':+d[k]
+                                }})
+                            }});
+
+                nv.addGraph(function () {
+                    var chart = nv.models.multiBarChart()
+                                    .transitionDuration(350)
+                                    .reduceXTicks(true)   //If 'false', every single x-axis tick label will be rendered.
+                                    .rotateLabels(0)      //Angle to rotate x-axis labels.
+                                    .showControls(true)   //Allow user to switch between 'Grouped' and 'Stacked' mode.
+                                    .groupSpacing(0.1)    //Distance between each group of bars.
+                    //.yDomain([0,60000])
+                            ;
+                    chart.xAxis
+                            .tickFormat(function(d) {
+                                return d3.time.format('%b')(new Date(d))
+                            });
+
+                    chart.yAxis
+                            .tickFormat(d3.format(',.0f'))
+                            .axisLabel("Energy (kWh)");
+
+                    d3.select('#left_multiBar svg')
+                            .datum(exampleData)
+                            .call(chart);
+
+                    nv.utils.windowResize(chart.update);
+
+                    return chart;
+
+            })
+        });
+
+        //Donut Chart (PREDICTED)
+
+            d3.csv("data/" + LeftInput + "_year.csv", function (error, data) {
+
+                var sum_predicted = d3.sum(data, function(d){return d.value});
+                nv.addGraph(function () {
+                    var chart = nv.models.pieChart()
+                                    .x(function (d) {
+                                        return d.label
+                                    })
+                                    .y(function (d) {
+                                        return d.value
+                                    })
+                                    .showLabels(true)     //Display pie labels
+                                    .labelThreshold(.05)  //Configure the minimum slice size for labels to show up
+                                    .labelType("percent") //Configure what type of data to show in the label. Can be "key", "value" or "percent"
+                                    .donut(true)          //Turn on Donut mode. Makes pie chart look tasty!
+                                    .donutRatio(0.35)     //Configure how big you want the donut hole size to be.
+                            ;
+
+                    d3.select("#left_donutChart svg")
+                            .datum(data)
+                            .transition().duration(350)
+                            .call(chart)
+//                    .append("hi")
+//                    .attr("x", 215)
+//                    .attr("y", 290)
+//                    .text("Total: " + sum_predicted)
+                    ;
+
+                    return chart;
+
+            });
+        });
+
+        //StackedAreaChart weekday (PREDICTED)
+
+
+
+
+            var select = document.getElementById("selectVariablePredicted");
+            //var maxY = document.getElementById('maxY').value;
+            var options = ['weekday', 'weekend'];
+            for (var i = 0; i < options.length; i++) {
+                var opt = options[i];
+                var el = document.createElement("option");
+                el.textContent = opt + " " + LeftInput;
+                el.value = opt;
+                select.appendChild(el);
+            }
+
+
+            $("#selectVariableRight").change(function () {
+
+                var Input = (document.getElementById("selectVariablePredicted").value);
+
+
+                d3.csv("data/" + LeftInput + "_" + Input + ".csv", function (err, data) {
+                    data.sort(function (a, b) {
+                        return d3.time.format('%Y-%m-%d' + '%H:%M').parse("2000-01-01" + a.length) - d3.time.format('%Y-%m-%d' + '%H:%M').parse("2000-01-01" + b.length);
+                    });
+                    var exampleData = Object.keys(data[0]).filter(function (k) {
+                        return k != 'length'
+                    })
+                            .map(function (k) {
+                                return {'key': k, 'values': data.map(function (d) {
+                                            return [
+                                                d3.time.format('%H:%M').parse(d.length),
+                                                //d3.time.format('%Y-%m-%d' + '%H:%M').parse("2000-01-01" + d.length)
+                                                +d[k]
+                                            ]
+                                        }
+                                )}
+                            });
+
+                    var colors = d3.scale.category20();
+                    keyColor = function (d, i) {
+                        return colors(d.key)
+                    };
+
+                    var chart;
+
+                    nv.addGraph(function () {
+                        chart = nv.models.stackedAreaChart()
+                                .x(function (d) {
+                                    return d[0]
+                                })
+                                .y(function (d) {
+                                    return d[1]
+                                })
+                                .color(keyColor)
+                                .clipEdge(true)
+                                .showControls(false);
+
+                        chart.xAxis
+                                .tickFormat(function (d) {
+                                    return d3.time.format('%H:%M')(new Date(d));
+                                });
+
+                        chart.yAxis
+                                .tickFormat(d3.format(',.2f'))
+                                .axisLabel("Energy (kWh)");
+                        //.yDomain([0, maxY]);
+
+
+                        d3.select('#left_stackedArea svg')
+                                .datum(exampleData)
+                                .transition().duration(500).call(chart);
+
+                        nv.utils.windowResize(chart.update);
+                        chart.dispatch.on('stateChange', function (e) {
+                            nv.log('New State:', JSON.stringify(e));
+                        });
+                        return chart;
+                    });
+
+
+            });
+        });
+
+        //LineChart daily (PREDICTED)
+
+            d3.csv("data/" + LeftInput + "_day.csv", function(err, data) {
+                if (err) return console.warn(err);
+
+                var exampleData = Object.keys(data[0]).filter(function(k){return k!='date'})
+                        .map(function(k) {
+                            return {'key':k, 'values':data.map(function(d) {
+                                return {
+                                    'x':d3.time.format('%Y-%m-%d').parse(d.date),
+                                    'y':+d[k]
+                                }
+                            })}
+                        });
+
+                nv.addGraph(function() {
+                    var chart = nv.models.lineWithFocusChart();
+
+                    chart.xAxis
+                            .tickFormat(function(d){
+                                return d3.time.format('%Y-%m-%d') (new Date(d))
+                            });
+
+                    chart.x2Axis
+                            .tickFormat(function(d){
+                                return d3.time.format('%b') (new Date(d))
+                            });
+
+                    chart.yAxis
+                            .tickFormat(d3.format(',.0f'))
+                            .axisLabel("Energy (kWh)");
+                    chart.y2Axis
+                            .tickFormat(d3.format(',.0f'));
+
+                    d3.select('#left_lineChart svg')
+                            .datum(exampleData)
+                            .transition()
+                            .duration(500)
+                            .call(chart);
+
+                    nv.utils.windowResize(chart.update);
+
+                    return chart;
+                });
+        });
+    });
+});
+
+/* RIGHT SIDE */
+$(document).ready(function() {
+    var options = ['1 Chitty ST', '4 Pentonvile Rd', '5-8 Hardwick elec_gas', '6-7 St Cross St elec_elec2_gas', '7-8-9 Rathbone Pl elec', '9 Rathbone Pl', '10 Pentonvile', '10 Rathbone elec_gas', '17 Gresse St elec_gas', '19-23 Fitzroy', '25 savile elec_gas', '43 Whitfield elec_gas', '45-51 elec', '63-65 NWR elec1_elec2_elec3_elec4_elec5', '76 Charlotte elec', '88 Rose elec1_elec2_elec3_gas', '100 George St elec_gas', '120 TCR elec', '137 Goldsmith Hse', '151 rose elec1_elec2_elec3', '161 rose elec1_elec2_gas', 'Angel elec1_elec2_gas', 'Buckley elec1_elec2_gas', 'Castle Hse elec', 'Davidson elec_gas', 'Gordon elec1_elec2', 'Greencoat elec1_elec2_elec3_gas', 'Holden elec1_elec2_gas', 'Johnson elec1_elec2_elec3_gas', 'Landgales elec1_gas','Middlesex Hse elec1_elec2_gas', 'Network elec1_gas', 'Oliver\'s Yard elec1_elec2_gas', 'Portobello elec1_elec2_gas', 'Qube elec1_elec2_elec3_elec4_gas', 'Stephen st elec1_elec2_elec3_elec4_elec5', 'Suncourt elec', 'Tower Elec'];
+
+    var select = document.getElementById("selectVariableRight");
+    for (var i = 0; i < options.length; i++) {
+        var opt = options[i];
+        var el = document.createElement("option");
+        el.textContent = opt;
+        el.value = opt;
+        select.appendChild(el);
+    }
+    $("#selectVariableRight").change(function () {
+        var RightInput = (document.getElementById("selectVariableRight").value);
+
+        //MultiBar month chart (ACTUAL)
+        $(document).ready(function(){
+            d3.csv("data/" + RightInput + "_month.csv", function(err, data) {
+                if (err) return console.warn(err);
+
+                var exampleData = Object.keys(data[0]).filter(function(k){return k!='date'})
+                        .map(function(k) {
+                            return {'key':k, 'values':data.map(function(d) {
+                                return {
+                                    //let's make this a real date
+                                    'x':d3.time.format('%Y-%m-%d').parse(d.date),
+                                    'y':+d[k]
+                                }})
+                            }});
+
+                nv.addGraph(function () {
+                    var chart = nv.models.multiBarChart()
+                                    .transitionDuration(350)
+                                    .reduceXTicks(true)   //If 'false', every single x-axis tick label will be rendered.
+                                    .rotateLabels(0)      //Angle to rotate x-axis labels.
+                                    .showControls(true)   //Allow user to switch between 'Grouped' and 'Stacked' mode.
+                                    .groupSpacing(0.1)    //Distance between each group of bars.
+                            ;
+                    chart.xAxis
+                            .tickFormat(function(d) {
+                                return d3.time.format('%b')(new Date(d))
+                            });
+
+                    chart.yAxis
+                            .tickFormat(d3.format(',.0f'))
+                            .axisLabel("Energy (kWh)");
+
+                    d3.select('#right_multiBar svg')
+                            .datum(exampleData)
+                            .call(chart);
+
+                    nv.utils.windowResize(chart.update);
+
+                    return chart;
+                });
+            });
+        });
+
+
+        //Donut Chart (ACTUAL)
+        $(document).ready(function() {
+            d3.csv("data/" + RightInput + "_year.csv", function (error, data) {
+
+                nv.addGraph(function () {
+                    var chart = nv.models.pieChart()
+                                    .x(function (d) {
+                                        return d.label
+                                    })
+                                    .y(function (d) {
+                                        return d.value
+                                    })
+                                    .showLabels(true)     //Display pie labels
+                                    .labelThreshold(.05)  //Configure the minimum slice size for labels to show up
+                                    .labelType("percent") //Configure what type of data to show in the label. Can be "key", "value" or "percent"
+                                    .donut(true)          //Turn on Donut mode. Makes pie chart look tasty!
+                                    .donutRatio(0.35)     //Configure how big you want the donut hole size to be.
+                            ;
+
+                    d3.select("#right_donutChart svg")
+                            .datum(data)
+                            .transition().duration(350)
+                            .call(chart);
+                    return chart;
+                });
+            });
+        });
+
+
+        //StackedAreaChart weekday (ACTUAL)
+        $(document).ready(function() {
+            var select = document.getElementById("selectVariableActual");
+            //var maxY = document.getElementById('maxY').value;
+            var options = ['weekday', 'weekend'];
+            for (var i = 0; i < options.length; i++) {
+                var opt = options[i];
+                var el = document.createElement("option");
+                el.textContent = opt + " " + LeftInput;
+                el.value = opt;
+                select.appendChild(el);
+            }
+
+            $("#selectVariableActual").change(function () {
+                var Input = (document.getElementById("selectVariableActual").value);
+                console.log(Input);
+                d3.csv("data/" + RightInput + "_"+ Input +".csv", function (err, data) {
+                    data.sort(function (a, b) {
+                        return d3.time.format('%Y-%m-%d' + '%H:%M').parse("2000-01-01" + a.length) - d3.time.format('%Y-%m-%d' + '%H:%M').parse("2000-01-01" + b.length);
+                    });
+                    var exampleData = Object.keys(data[0]).filter(function (k) {
+                        return k != 'length'
+                    })
+                            .map(function (k) {
+                                return {'key': k, 'values': data.map(function (d) {
+                                            return [
+                                                d3.time.format('%H:%M').parse(d.length),
+                                                //d3.time.format('%Y-%m-%d' + '%H:%M').parse("2000-01-01" + d.length)
+                                                +d[k]
+                                            ]
+                                        }
+                                )}
+                            });
+
+                    var colors = d3.scale.category20();
+                    keyColor = function (d, i) {
+                        return colors(d.key)
+                    };
+
+                    var chart;
+
+                    nv.addGraph(function () {
+                        chart = nv.models.stackedAreaChart()
+                                .x(function (d) {
+                                    return d[0]
+                                })
+                                .y(function (d) {
+                                    return d[1]
+                                })
+                                .color(keyColor)
+                                .clipEdge(true)
+                                .showControls(false);
+
+                        chart.xAxis
+                                .tickFormat(function (d) {
+                                    return d3.time.format('%H:%M')(new Date(d));
+                                });
+                        chart.yAxis
+                                .tickFormat(d3.format(',.2f'))
+                                .axisLabel("Energy (kWh)");
+
+                        d3.select('#right_stackedArea svg')
+                                .datum(exampleData)
+                                .transition().duration(500).call(chart);
+                        nv.utils.windowResize(chart.update);
+                        chart.dispatch.on('stateChange', function (e) {
+                            nv.log('New State:', JSON.stringify(e));
+                        });
+                        return chart;
+                    });
+                });
+            });
+        });
+
+        //LineChart daily (ACTUAL)
+        $(document).ready(function(){
+            d3.csv("data/" + RightInput + "_day.csv", function(err, data) {
+                if (err) return console.warn(err);
+
+                var exampleData = Object.keys(data[0]).filter(function(k){return k!='date'})
+                        .map(function(k) {
+                            return {'key':k, 'values':data.map(function(d) {
+                                return {
+                                    //let's make this a real date
+                                    'x':d3.time.format('%Y-%m-%d').parse(d.date),
+                                    'y':+d[k]
+                                }
+                            })}
+                        });
+
+                nv.addGraph(function() {
+                    var chart = nv.models.lineWithFocusChart();
+
+                    chart.xAxis
+                            .tickFormat(function(d){
+                                return d3.time.format('%Y-%m-%d') (new Date(d))
+                            });
+
+                    chart.x2Axis
+                            .tickFormat(function(d){
+                                return d3.time.format('%b') (new Date(d))
+                            });
+
+                    chart.yAxis
+                            .tickFormat(d3.format(',.0f'))
+                            .axisLabel("Energy (kWh)");
+
+                    chart.y2Axis
+                            .tickFormat(d3.format(',.0f'));
+
+                    d3.select('#right_lineChart svg')
+                            .datum(exampleData)
+                            .transition()
+                            .duration(500)
+                            .call(chart);
+
+                    nv.utils.windowResize(chart.update);
+
+                    return chart;
+                });
+            });
+        });
+
+    });
+});
+
+
+
+
+</script>
+</body>
